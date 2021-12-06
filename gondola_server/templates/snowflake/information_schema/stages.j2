@@ -1,0 +1,17 @@
+select
+STAGE_CATALOG as database_name,
+STAGE_SCHEMA as schema_name,
+STAGE_NAME as object_name,
+data_type,
+NUMERIC_PRECISION,
+NUMERIC_SCALE,
+START_VALUE,
+MINIMUM_VALUE,
+MAXIMUM_VALUE,
+NEXT_VALUE,
+"INCREMENT",
+CYCLE_OPTION,
+LAST_ALTERED::timestamp_ntz as last_altered,
+COMMENT
+from INFORMATION_SCHEMA.STAGES
+where STAGE_TYPE = 'Internal Named'

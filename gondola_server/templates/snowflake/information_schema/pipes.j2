@@ -1,0 +1,7 @@
+select pipe_catalog as database_name,
+pipe_schema as schema_name,
+pipe_name as object_name,
+definition,
+last_altered,
+comment
+from INFORMATION_SCHEMA.PIPES

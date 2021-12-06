@@ -1,0 +1,10 @@
+select
+CATALOG_NAME as database_name,
+schema_name,
+schema_name as object_name,
+is_transient,
+is_managed_access,
+retention_time,
+last_altered::timestamp_ntz as last_altered,
+comment
+from INFORMATION_SCHEMA.SCHEMATA

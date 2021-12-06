@@ -1,0 +1,10 @@
+{% for change in parameters if change.ticket_number -%}
+ticket_number: {{ change.ticket_number }}
+created_by: {{ change.author }}
+{% endfor %}
+sql_files:
+{% for change in parameters if not change.ticket_number -%}
+  - id: {{  change.id  }}
+  sql_location: {{  change.file_location  }}
+  
+{% endfor %}

@@ -1,0 +1,13 @@
+show tasks in database;
+select "created_on" as last_altered,
+"name" as object_name,
+"database_name" as database_name,
+"schema_name" as schema_name,
+"comment" as comment,
+"warehouse" as WAREHOUSE,
+"schedule" as schedule,
+"predecessors" as predecessors,
+"state" as state,
+"definition" as definition,
+"condition" as condition
+from table(result_scan(last_query_id()))

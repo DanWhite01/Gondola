@@ -1,0 +1,7 @@
+select FUNCTION_CATALOG as database_name,
+FUNCTION_SCHEMA as schema_name,
+FUNCTION_NAME as object_name,
+argument_signature,
+comment,
+last_altered::timestamp_ntz as last_altered
+from INFORMATION_SCHEMA.FUNCTIONS

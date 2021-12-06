@@ -1,0 +1,30 @@
+show columns in database;
+select object_construct(*) as column_attributes from
+              (select cols.column_name as object_name,
+               cols.ordinal_position,
+               cols.column_default,
+               cols.is_nullable,
+               cols.data_type,
+               cols.character_maximum_length,
+               cols.character_octet_length,
+               cols.numeric_precision,
+               cols.numeric_precision_radix,
+               cols.numeric_scale,
+               cols.collation_name,
+               cols.is_identity,
+               cols.identity_generation,
+               cols.identity_start,
+               cols.identity_increment,
+               cols.identity_cycle,
+               cols.comment from INFORMATION_SCHEMA.COLUMNS cols
+               INNER JOIN INFORMATION_SCHEMA.TABLES tabs
+                    ON (cols.table_schema = tabs.table_schema
+                        AND cols.TABLE_NAME = tabs.table_name)
+               LEFT JOIN table(result_scan(last_query_id())) show
+                    ON (show."column_name" = cols.column_name
+                        AND show."table_name" = cols.TABLE_NAME
+                        AND show."schema_name" = cols.table_schema)
+               WHERE tabs.table_catalog = CURRENT_DATABASE()
+               and tabs.table_name = '{{ parameters.object_name }}'
+               and tabs.table_schema = '{{ parameters.schema_name }}'
+               and tabs.table_type = 'BASE TABLE')

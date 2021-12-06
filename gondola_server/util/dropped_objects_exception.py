@@ -1,0 +1,2 @@
+class DroppedObjectException(Exception):
+    pass

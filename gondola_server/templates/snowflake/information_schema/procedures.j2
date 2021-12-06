@@ -1,0 +1,7 @@
+select PROCEDURE_CATALOG as database_name,
+PROCEDURE_SCHEMA as schema_name,
+procedure_name as object_name,
+argument_signature,
+comment,
+last_altered::timestamp_ntz as last_altered
+from INFORMATION_SCHEMA.PROCEDURES

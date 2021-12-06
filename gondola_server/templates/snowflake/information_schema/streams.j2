@@ -1,0 +1,9 @@
+show terse streams in database;
+select "database_name" as database_name,
+"schema_name" as schema_name,
+"name" as object_name,
+"created_on" as last_altered,
+'' as comment,
+"kind" as kind,
+"tableOn" as table_on
+from table(result_scan(last_query_id()))

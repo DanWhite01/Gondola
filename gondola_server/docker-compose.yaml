@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  gondola_backend:
+    build: .
+    entrypoint:
+      - flask
+      - run
+      - --host=0.0.0.0
+    environment:
+      FLASK_DEBUG: "true"
+      FLASK_APP: rest_main.py
+    ports:
+      - "5000:5000"
+    stdin_open: true # docker run -i
+    tty: true # docker run -t      
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./templates:/app/templates
+      - ./util:/app/util
+    working_dir: /home/app_user/app

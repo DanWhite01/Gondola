@@ -1,0 +1,9 @@
+select table_catalog as database_name,  
+table_schema as schema_name,
+table_name as object_name,
+table_type,
+is_transient,
+comment,
+last_altered::timestamp_ntz as last_altered
+from INFORMATION_SCHEMA.TABLES
+WHERE table_type NOT IN ('VIEW', 'MATERIALIZED VIEW')
