@@ -10,6 +10,9 @@ information_schema_sql_templates = SqlTemplateEnvironment(
     searchpath='templates/snowflake/information_schema')
 sql_files = SqlFileCreator()
 
+custom_sql_templates = SqlTemplateEnvironment(
+    searchpath='templates/snowflake/custom_sql')
+
 
 class Inspect(object):
     """
@@ -44,11 +47,18 @@ class Inspect(object):
             if isinstance(db_object, available_object_types.get(db_object_type)):
 
                 # remove database name from the ddl as its causing differences
-                pattern = '([A-Za-z0-9_$]*)\.([A-Za-z0-9_$]*)\.([A-Za-z0-9_$]*)'
-                replace = "\g<2>.\g<3>"
+                pattern = r"(\w*)\.(\w*)\.(?!NEXTVAL)"
+                replace = "\\2."
+
+                print('Before')
+                print(db_object.original_ddl)
+
                 db_object.original_ddl = re.sub(
-                    pattern, replace, db_object.original_ddl)
+                    pattern, replace, db_object.original_ddl, 0)
                 return_objects.append(db_object)
+
+                print('After')
+                print(db_object.original_ddl)
 
         return return_objects
 
@@ -58,14 +68,18 @@ class Inspect(object):
         """
 
         sql_statements = sql_files.create_sql_file(key=object_type.lower(),
-                                      parameters=None).split(';')
-       
+                                                   parameters=None).split(';')
+
         sql_statements_len = len(sql_statements)-1
 
         for index, x in enumerate(sql_statements):
             if index == sql_statements_len:
-                inspected_objects = self.connection.cursor(DictCursor).execute(x).fetchall()
+                # print(str(x))
+                inspected_objects = self.connection.cursor(
+                    DictCursor).execute(x).fetchall()
+                # print(inspected_objects)
             else:
+                # print(str(x))
                 self.connection.cursor().execute(x).fetchall()
 
         db_objects = []
@@ -115,3 +129,65 @@ class Inspect(object):
     def schema_create_ddl(self, db_object):
         sql = db_object.create_ddl()
         return sql
+
+    def get_table_alter_ddl(self, src, tgt, set_operator, src_conn, tgt_conn):
+
+        col_list = []
+        # Generate column list
+        src_cur = src_conn.cursor()
+        tgt_cur = tgt_conn.cursor()
+
+        custom_sql_type = 'list_tab_cols'
+        template_name = custom_sql_templates.get_template(
+            f'{custom_sql_type}.j2')
+        sql_files.register_template(
+            key=f'{custom_sql_type}', template=template_name)
+
+        src_cur.execute(
+            sql_files.create_sql_file(key=custom_sql_type,
+                                      parameters={'database_name': src.database_name,
+                                                  'schema_name': src.schema_name,
+                                                  'object_name': src.object_name}))
+        src_sfqid = src_cur.sfqid
+
+        tgt_cur.execute(
+            sql_files.create_sql_file(key=custom_sql_type,
+                                      parameters={'database_name': tgt.database_name,
+                                                  'schema_name': tgt.schema_name,
+                                                  'object_name': tgt.object_name}))
+        tgt_sfqid = tgt_cur.sfqid
+
+        custom_sql_type = 'table_col_compare'
+        template_name = custom_sql_templates.get_template(
+            f'{custom_sql_type}.j2')
+        sql_files.register_template(
+            key=f'{custom_sql_type}', template=template_name)
+
+        src_cols = src_cur.execute(
+            sql_files.create_sql_file(key=custom_sql_type,
+                                      parameters={'sfqid': src_sfqid,
+                                                  'database_name': src.database_name})).fetchall()
+        tgt_cols = tgt_cur.execute(
+            sql_files.create_sql_file(key=custom_sql_type,
+                                      parameters={'sfqid': tgt_sfqid,
+                                                  'database_name': tgt.database_name})).fetchall()
+
+        if set_operator == 'INTERSECT':
+            for src_col in src_cols:
+                print(src_col)
+                for tgt_col in tgt_cols:
+                    if src_col[0] == tgt_col[0] and src_col[1] == tgt_col[1]:
+                        col_list.append(src_col)
+        elif set_operator == 'MINUS':
+            for src_col in src_cols:
+                matched = False
+                for tgt_col in tgt_cols:
+                    if src_col[0] == tgt_col[0] and src_col[1] == tgt_col[1]:
+                        matched = True
+                    
+                if not matched:
+                    col_list.append(src_col)
+        else:
+            col_list = src_cols
+
+        return col_list
