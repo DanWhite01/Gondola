@@ -67,7 +67,11 @@ class Compare(object):
 
         dependancy_order = self.json_to_tgt
 
+        #print(json.dumps(dependancy_order, indent=4))
+
         unique_ordered_list = Object_Depend(dependancy_order).order()
+
+        # print(json.dumps(unique_ordered_list, indent=4))
 
         self.json_to_tgt = unique_ordered_list
 
@@ -127,25 +131,25 @@ class Compare(object):
                 # fetch objects in target and not in source
                 if tgt_obj.object_name not in objects_in_src_by_name and tgt_obj not in objects_not_in_source:
                     tgt_obj.diff_ddl = {'src_db': self.connection_src['database'], 'src_ddl': '',
-                                        'tgt_db': self.connection_tgt['database'], 'tgt_ddl': src_obj.original_ddl}
+                                        'tgt_db': self.connection_tgt['database'], 'tgt_ddl': tgt_obj.original_ddl}
                     objects_not_in_source.append(tgt_obj)
 
-        #Failsafe option where object only exists in Target 
+        # Failsafe option where object only exists in Target
         for tgt_obj in objects_in_tgt:
             if tgt_obj.object_name not in objects_in_src_by_name and tgt_obj not in objects_not_in_source:
                 tgt_obj.diff_ddl = {'src_db': self.connection_src['database'], 'src_ddl': '',
-                                    'tgt_db': self.connection_tgt['database'], 'tgt_ddl': src_obj.original_ddl}
+                                    'tgt_db': self.connection_tgt['database'], 'tgt_ddl': tgt_obj.original_ddl}
                 objects_not_in_source.append(tgt_obj)
 
         for obj in objects_in_both_diff_ddl:
             print('objects_in_both_diff_ddl', obj.object_name)
-        #
+
         for obj in objects_in_both_no_diff:
             print('objects_in_both_no_diff', obj.object_name)
-        #
+
         for obj in objects_not_in_target:
             print('objects_not_in_target', obj.object_name)
-        #
+
         for obj in objects_not_in_source:
             print('objects_not_in_source', obj.object_name)
 
@@ -171,15 +175,16 @@ class Compare(object):
                 db_object.db_object_type = db_object_type
                 self.json_to_tgt.append(db_object.__dict__)
 
-        # Modified Dummy
+        # Modified
         for db_object in objects_in_both_diff_ddl:
             for src_object in objects_in_src:
                 if db_object.object_name == src_object.object_name:
                     if db_object_type == 'tables':
-                        with connection_context(self.connection_tgt) as conn:
-                            db_object.change_ddl = db_object.create_alter_statement(src_object, self.include_drops, conn=conn)
+                        db_object.change_ddl = db_object.create_alter_statement(
+                            src_object, self.inspection_tgt, self.inspection_src)
                     else:
-                        db_object.change_ddl = db_object.create_alter_statement(src_object, self.include_drops)
+                        db_object.change_ddl = db_object.create_alter_statement(
+                            src_object, self.include_drops)
                         print(db_object.change_ddl)
 
             # print(db_object.__dict__)
@@ -188,7 +193,7 @@ class Compare(object):
             db_object.db_object_type = db_object_type
             self.json_to_tgt.append(db_object.__dict__)
 
-        # Unchanged Dummy
+        # Unchanged
         for db_object in objects_in_both_no_diff:
             db_object.database_name = self.connection_tgt.get('database')
             db_object.change_ddl = ""
