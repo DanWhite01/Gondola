@@ -1,0 +1,8 @@
+SELECT lower(b.column_name) as column_name, b.data_type, b.is_nullable
+FROM TABLE(RESULT_SCAN('{{ parameters.sfqid }}')) a 
+JOIN {{ parameters.database_name }}.information_schema.columns b
+ON (a."database_name" = b.table_catalog
+AND a."schema_name" = b.table_schema
+AND a."table_name" = b.table_name
+AND a."column_name" = b.column_name)
+WHERE a."kind" != 'VIRTUAL_COLUMN'
