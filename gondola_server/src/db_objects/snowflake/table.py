@@ -3,7 +3,7 @@ from src.db_objects.snowflake.column import Column
 from typing import Dict
 from deepdiff import DeepDiff
 import json
-
+import re
 
 class Table(DatabaseObject):
     """
@@ -41,8 +41,12 @@ class Table(DatabaseObject):
     def create_alter_statement(self, other, inspect_tgt, inspect_src):
 
         # DDL to create a new interim table with the new structure.
-        src_ddl = other.original_ddl.replace(
-            self.object_name, self.object_name+'_INT')
+        pattern = self.object_name + r"(?![_$a-zA-Z0-9])"
+        #search = re.search(pattern, other.original_ddl )
+        src_ddl = re.sub(pattern, self.object_name+'_INT' , other.original_ddl , 0 )
+
+        #src_ddl = other.original_ddl.replace(
+        #    self.object_name, self.object_name+'_INT')
         sql_stmt = self.use_schema_sql() + '\n' + src_ddl
 
         # Now write the sql to populate this new table with the data from old table
@@ -108,14 +112,38 @@ class Table(DatabaseObject):
                     select_cols += f"to_date('01/01/1900', 'mm/dd/yyyy') AS {column_name}"
                 elif data_type == 'TIME':
                     select_cols += f"time('00:00:00') AS {column_name}"
-                elif data_type in ['DATETIME', 'TIMESTAMP', 'TIMESTAMP_LTZ', 'TIMESTAMP_NTZ', 'TIMESTAMP_TZ']:
-                    select_cols += f"to_timestamp('01/01/1900 00:00:00', 'mm/dd/yyyy hh24:mi:ss') AS {column_name}"
+                elif data_type in ['DATETIME', 'TIMESTAMP']:
+                    select_cols += f"NVL({column_name},to_timestamp('01/01/1900 00:00:00', 'mm/dd/yyyy hh24:mi:ss')) AS {column_name}"
+                elif data_type in ['TIMESTAMP_LTZ']:
+                    select_cols += f"NVL({column_name}::timestamp_ltz,to_timestamp_ltz('01/01/1900 00:00:00', 'mm/dd/yyyy hh24:mi:ss')) AS {column_name}"
+                elif data_type in ['TIMESTAMP_NTZ']:
+                    select_cols += f"NVL({column_name}::timestamp_ntz,to_timestamp_ntz('01/01/1900 00:00:00', 'mm/dd/yyyy hh24:mi:ss')) AS {column_name}"
+                elif data_type in ['TIMESTAMP_TZ']:
+                    select_cols += f"NVL({column_name}::timestamp_tz,to_timestamp_tz('01/01/1900 00:00:00', 'mm/dd/yyyy hh24:mi:ss')) AS {column_name}"
                 elif data_type in ['VARIANT', 'OBJECT']:
                     select_cols += f"parse_json('{{}}') AS {column_name}"
                 elif data_type == 'ARRAY':
                     select_cols += f"to_array('') AS {column_name}"
                 else:
                     select_cols += f"'' AS {column_name}"
+            else :
+
+                if len(insert_cols) > 0:
+                    select_cols += ', '
+                    insert_cols += ', '
+
+                if data_type in ['DATETIME', 'TIMESTAMP']:
+                    select_cols += f"{column_name}"
+                elif data_type in ['TIMESTAMP_LTZ']:
+                    select_cols += f"{column_name}::timestamp_ltz AS {column_name}"
+                elif data_type in ['TIMESTAMP_NTZ']:
+                    select_cols += f"{column_name}::timestamp_ntz AS {column_name}"
+                elif data_type in ['TIMESTAMP_TZ']:
+                    select_cols += f"{column_name}::timestamp_tz AS {column_name}"
+                else:
+                    select_cols += column_name
+                
+                insert_cols += column_name
 
         sql_stmt += '\n\n' + \
             f"INSERT INTO {self.object_name}_INT ({insert_cols}) SELECT {select_cols} FROM {self.object_name};"
