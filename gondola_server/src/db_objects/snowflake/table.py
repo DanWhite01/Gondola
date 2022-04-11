@@ -169,3 +169,4 @@ if __name__ == '__main__':
     print(diff.get("values_changed").get(
         "root['CHARACTER_MAXIMUM_LENGTH']").get("new_value"))
     print(diff.get("values_changed").get("root['CHARACTER_OCTET_LENGTH']"))
+
